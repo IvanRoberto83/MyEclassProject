@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIG ---
-GEMINI_API_KEY = "AIzaSyAdopKKeNaqUkH_G2VhULnSvKpFfoGYEoQ" 
+GEMINI_API_KEY = "" 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
@@ -21,12 +21,12 @@ def tentukan_kategori_dan_matkul(perintah):
     # 2. Logika Penentuan Kategori (Urutan penting!)
     if any(keyword in p for keyword in ["absen", "presensi", "alpha", "masuk", "hadir"]):
         kategori = "presensi"
+    elif any(keyword in p for keyword in ["umum", "pengumuman", "info"]):
+        kategori = "pengumuman"
     elif any(keyword in p for keyword in ["nilai", "skor", "grade", "nilai akhir"]):
         kategori = "nilai"
     elif any(keyword in p for keyword in ["materi", "slide", "pdf", "ppt", "excel", "word", "docx", "download"]):
         kategori = "materi"
-    elif any(keyword in p for keyword in ["umum", "pengumuman", "info"]):
-        kategori = "pengumuman"
     else:
         # Default tetap tugas, tapi hanya jika tidak ada keyword di atas
         kategori = "tugas"
@@ -147,7 +147,91 @@ def get_data_eclass(url):
 
             return "\n".join(hasil_tugas) if hasil_tugas else "Tidak ada daftar tugas ditemukan."
         
-        # --- CABANG 3: LOGIKA MATERI ---
+        # --- CABANG 3: LOGIKA PENGUMUMAN ---
+        elif "pengumuman" in url:
+            pengumuman_results = []
+            table_pengumuman = soup.find('table', class_='diskusi')
+            
+            if not table_pengumuman:
+                return "Tabel pengumuman tidak ditemukan."
+
+            # Ambil semua baris judul (class thread)
+            threads = table_pengumuman.find_all('tr', class_='thread')
+            
+            for thread in threads:
+                # 1. Ambil Judul
+                # Kita ambil teks sebelum tag span agar bersih
+                judul_full = thread.find('td').get_text(strip=True)
+                tgl_text = thread.find('span', class_='tgl').get_text(strip=True) if thread.find('span', class_='tgl') else ""
+                judul_bersih = judul_full.replace(tgl_text, "").strip()
+                
+                # 2. Ambil Isi (Baris selanjutnya dengan class isithread)
+                # Kita cari tag <tr> berikutnya yang punya id dimulai dengan 'isi'
+                isi_id = thread.get('id').replace('th', 'isi')
+                isi_row = table_pengumuman.find('tr', id=isi_id)
+                
+                isi_text = "Isi tidak ditemukan."
+                if isi_row:
+                    # Ambil teks di dalam <td> yang punya padding 40px
+                    isi_cell = isi_row.find('td')
+                    if isi_cell:
+                        # Membersihkan teks dari whitespace berlebih
+                        isi_text = " ".join(isi_cell.get_text(separator=" ", strip=True).split())
+
+                pengumuman_results.append(f"JUDUL: {judul_bersih}\nTANGGAL: {tgl_text}\nISI: {isi_text}\n---")
+
+            return "\n".join(pengumuman_results) if pengumuman_results else "Tidak ada pengumuman."
+        
+        # --- CABANG 4: LOGIKA NILAI ---
+        elif "nilai" in url:
+            nilai_results = []
+            # Ambil semua tabel dengan class 'data'
+            all_tables = soup.find_all('table', class_='data')
+            
+            # Validasi: Pastikan ada minimal 2 tabel sesuai struktur yang kamu berikan
+            if len(all_tables) < 2:
+                # Jika cuma ada 1 tabel, mungkin dosen belum setting standar nilai
+                if len(all_tables) == 1:
+                    target_table = all_tables[0]
+                else:
+                    return "Tabel nilai tidak ditemukan."
+            else:
+                # Targetkan tabel kedua karena tabel pertama adalah 'Standar Nilai'
+                target_table = all_tables[1]
+
+            rows = target_table.find_all('tr')
+            
+            # 1. Ambil data baris tugas (Skip header) sampai sebelum 3 baris terakhir (Total, Sementara, Maks)
+            data_rows = rows[1:-3]
+            
+            for row in data_rows:
+                cols = row.find_all('td')
+                if len(cols) >= 3:
+                    nama_item = cols[0].get_text(strip=True)
+                    bobot = cols[1].get_text(strip=True)
+                    skor = cols[2].get_text(strip=True)
+                    nilai_results.append(f"DATA_NILAI >> {nama_item} ({bobot}): {skor}")
+
+            # 2. Ambil 2 baris ringkasan paling bawah (Nilai Sementara & Capaian Maksimal)
+            row_end = rows[-2:]
+            if len(row_end) >= 2:
+                # Baris Nilai Sementara
+                cols_smt = row_end[0].find_all('td')
+                if len(cols_smt) >= 4:
+                    n_angka = cols_smt[2].get_text(strip=True)
+                    n_huruf = cols_smt[3].get_text(strip=True).replace("Huruf:", "").strip()
+                    nilai_results.append(f"\nRINGKASAN >> Nilai Sementara: {n_angka} | {n_huruf}")
+                
+                # Baris Capaian Maksimal
+                cols_maks = row_end[1].find_all('td')
+                if len(cols_maks) >= 4:
+                    m_angka = cols_maks[2].get_text(strip=True)
+                    m_huruf = cols_maks[3].get_text(strip=True).replace("Huruf:", "").strip()
+                    nilai_results.append(f"RINGKASAN >> Capaian Maksimal: {m_angka} | {m_huruf}")
+
+            return "\n".join(nilai_results)
+
+        # --- CABANG 5: LOGIKA MATERI ---
         elif "materi" in url:
             materi_results = []
             # Ambil semua tabel dengan class 'data'
@@ -221,11 +305,15 @@ def main():
             {raw_data}
 
             Tugasmu:
-            1. Analisis data tersebut sesuai dengan kategori yang ditanyakan (Tugas/Presensi/Nilai/Materi).
-            2. Jika kategori adalah PRESENSI, cari apakah ada status 'A' (Alpha) atau 'H' (Hadir), kemudian tampilkan juga persentase kehadiran ((total kehadiran/total pertemuan)*100).
-            3. Jika kategori adalah TUGAS, cek tugas mana yang sudah/belum dikumpul (termasuk deteksi hardcopy), kemudian tampilkan dalam list tugas (beserta nama tugasnya).
-            4. Jika kategori adalah MATERI, tampilkan semua materi (beserta nama materi dan jenis filenya) dalam bentuk list.
-            5. Berikan jawaban yang ringkas, poin-per-poin, dan beri peringatan jika ada hal yang merugikan mahasiswa (seperti Alpha atau tugas belum kumpul).
+            1. Analisis data sesuai kategori.
+            2. Jika kategori PRESENSI: Tampilkan persentase kehadiran dan peringatan jika ada Alpha.
+            3. Jika kategori TUGAS: List status pengumpulan tugas beserta nama tugasnya.
+            4. Jika kategori PENGUMUMAN:
+               - Jika user minta 'cek pengumuman', tampilkan judul-judulnya saja berupa list.
+               - Jika user bertanya tentang isi pengumuman tertentu, berikan isi lengkap pengumuman yang relevan.
+            5. Jika kategori NILAI: Tampilkan list nilai beserta bobotnya, dan tampilkan juga "Nilai Sementara" dan "Capaian Maksimal".
+            6. Jika kategori MATERI: List nama materi dan jenis dokumennya.
+            7. Berikan jawaban yang ringkas dan informatif.
             """
             
             response = model.generate_content(prompt)

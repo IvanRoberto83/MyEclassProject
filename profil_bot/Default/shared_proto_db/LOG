@@ -1,3 +1,6 @@
-2026/03/19-21:28:05.656 1fac Reusing MANIFEST D:\Ivan\Project\Aplikasi My E-Class\profil_bot\Default\shared_proto_db/MANIFEST-000001
-2026/03/19-21:28:05.657 1fac Recovering log #4
-2026/03/19-21:28:05.665 1fac Reusing old log D:\Ivan\Project\Aplikasi My E-Class\profil_bot\Default\shared_proto_db/000004.log 
+2026/03/20-18:59:54.460 1a84 Reusing MANIFEST D:\Ivan\Project\Aplikasi My E-Class\profil_bot\Default\shared_proto_db/MANIFEST-000001
+2026/03/20-18:59:54.461 1a84 Recovering log #4
+2026/03/20-18:59:54.465 1a84 Reusing old log D:\Ivan\Project\Aplikasi My E-Class\profil_bot\Default\shared_proto_db/000004.log 
+2026/03/20-19:00:04.109 1200 Level-0 table #8: started
+2026/03/20-19:00:04.118 1200 Level-0 table #8: 107717 bytes OK
+2026/03/20-19:00:04.120 1200 Delete type=0 #4
