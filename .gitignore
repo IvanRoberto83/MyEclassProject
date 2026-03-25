@@ -1,0 +1,12 @@
+# Folder Profil Browser (Sangat Rahasia)
+profil_bot/
+
+# Environment Variables (Berisi API Key)
+.env
+
+# Folder Download
+downloads/
+
+# Python Cache
+__pycache__/
+*.py[cod]
