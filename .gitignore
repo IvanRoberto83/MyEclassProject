@@ -10,3 +10,6 @@ downloads/
 # Python Cache
 __pycache__/
 *.py[cod]
+
+# Ngrok Recovery Code
+ngrok/
