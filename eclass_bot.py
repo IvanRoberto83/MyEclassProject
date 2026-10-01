@@ -31,7 +31,7 @@ def get_dashboard_data(opsi):
     url_index = "https://eclass.ukdw.ac.id/e-class/id/kelas/index"
     driver = None
     try:
-        driver = uc.Chrome(options=options, version_main=145)
+        driver = uc.Chrome(options=options, version_main=153)
         # Tambahan agar driver tidak menggantung jika page load lambat
         driver.set_page_load_timeout(30)
         driver.get(url_index)
@@ -134,7 +134,7 @@ def get_data_eclass(url, prompt):
 
     driver = None
     try:
-        driver = uc.Chrome(options=options, version_main=145)
+        driver = uc.Chrome(options=options, version_main=153)
         driver.set_page_load_timeout(30)
         driver.get(url)
         driver.switch_to.window(driver.window_handles[0])
@@ -196,7 +196,7 @@ def get_data_eclass(url, prompt):
                     time.sleep(2)
                     soup_detail = BeautifulSoup(driver.page_source, 'html.parser')
                     isithread_text = "".join([r.get_text().lower() for r in soup_detail.find_all('tr', class_='isithread')])
-                    is_softcopy = "jawaban anda:" in isithread_text
+                    is_softcopy = "dikumpul tanggal" in isithread_text
                     is_hardcopy = "hardcopy" in soup_detail.get_text().lower() or "hard copy" in soup_detail.get_text().lower()
                     status = "SUDAH DIKUMPUL (Softcopy)" if is_softcopy else ("SELESAI (Metode Hardcopy)" if is_hardcopy else "BELUM DIKUMPUL")
                     hasil_tugas.append(f"- {judul_tugas}: {status}")
